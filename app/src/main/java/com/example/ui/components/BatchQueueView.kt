@@ -145,10 +145,10 @@ fun BatchQueueView(
                             fontWeight = FontWeight.Medium
                         )
 
-                        // Resolution Calculation indicator
+                        // Explicit Resolution Calculation & Dimension Verification Indicator
                         val queuedJob = jobs.firstOrNull()
                         val outputDimText = if (queuedJob != null) {
-                            "Output: ~${queuedJob.originalWidth * settings.scale} × ${queuedJob.originalHeight * settings.scale}"
+                            "Orig: ${queuedJob.originalWidth}×${queuedJob.originalHeight} • Out: ${queuedJob.originalWidth * settings.scale}×${queuedJob.originalHeight * settings.scale}"
                         } else {
                             "Output: ${settings.scale}× dimensions"
                         }
@@ -158,7 +158,7 @@ fun BatchQueueView(
                             color = ResoMaxAccent,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
 

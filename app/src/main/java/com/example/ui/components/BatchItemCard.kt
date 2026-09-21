@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -95,8 +96,8 @@ fun BatchItemCard(
                         Image(
                             bitmap = thumb.asImageBitmap(),
                             contentDescription = job.name,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth()
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.fillMaxSize().padding(2.dp)
                         )
                     } else {
                         Text(
@@ -162,8 +163,10 @@ fun BatchItemCard(
                             color = TextMuted,
                             fontSize = 11.sp
                         )
+                        val targetW = if (job.outputWidth > 0) job.outputWidth else (job.originalWidth * job.scaleUsed)
+                        val targetH = if (job.outputHeight > 0) job.outputHeight else (job.originalHeight * job.scaleUsed)
                         Text(
-                            text = "${job.outputWidth} × ${job.outputHeight}",
+                            text = "$targetW × $targetH",
                             color = if (job.status == JobStatus.COMPLETED) StatusSuccess else TextPrimary,
                             fontSize = 11.sp,
                             fontWeight = if (job.status == JobStatus.COMPLETED) FontWeight.SemiBold else FontWeight.Normal,

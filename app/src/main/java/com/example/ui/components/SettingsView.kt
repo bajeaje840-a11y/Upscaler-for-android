@@ -149,7 +149,7 @@ fun SettingsView(
             }
         }
 
-        // Section 2: Output Format
+        // Section 2: Output Format & Compression
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = "Export Format",
@@ -175,24 +175,24 @@ fun SettingsView(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = fmt.displayName,
+                            text = if (fmt == OutputFormat.AUTO) "Auto (Match)" else fmt.displayName.substringBefore(" "),
                             color = if (isSelected) TextPrimary else TextSecondary,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
                 }
             }
 
-            // Quality slider for JPEG / WebP
-            if (settings.outputFormat == OutputFormat.JPEG) {
+            // Quality slider for JPEG / WebP / Auto
+            if (settings.outputFormat == OutputFormat.JPEG || settings.outputFormat == OutputFormat.AUTO) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Compression Quality", color = TextSecondary, fontSize = 12.sp)
+                    Text("JPEG Quality", color = TextSecondary, fontSize = 12.sp)
                     Text("${settings.jpegQuality}%", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 Slider(
@@ -207,14 +207,15 @@ fun SettingsView(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
-            } else if (settings.outputFormat == OutputFormat.WEBP) {
+            }
+            if (settings.outputFormat == OutputFormat.WEBP || settings.outputFormat == OutputFormat.AUTO) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Compression Quality", color = TextSecondary, fontSize = 12.sp)
+                    Text("WebP Quality", color = TextSecondary, fontSize = 12.sp)
                     Text("${settings.webpQuality}%", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
                 }
                 Slider(
@@ -230,6 +231,42 @@ fun SettingsView(
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        }
+
+        // Section 2.5: Optimize File Size Toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(ResoMaxSurface)
+                .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Optimize File Size", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = if (settings.optimizeFileSize) {
+                        "ON: Visually loss-minimized compression with more efficient file size"
+                    } else {
+                        "OFF: Maximum quality / minimum processing"
+                    },
+                    color = if (settings.optimizeFileSize) ResoMaxAccent else TextMuted,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp
+                )
+            }
+            Switch(
+                checked = settings.optimizeFileSize,
+                onCheckedChange = { onSettingsChanged(settings.copy(optimizeFileSize = it)) },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = ResoMaxAccent,
+                    uncheckedTrackColor = ResoMaxBackground,
+                    uncheckedBorderColor = BorderStrong
+                )
+            )
         }
 
         // Section 3: Filter Tuning

@@ -103,7 +103,11 @@ class BatchQueueManager(
         _isPaused.value = false
 
         queueProcessorJob = scope.launch(Dispatchers.Default) {
-            val semaphore = Semaphore(settings.maxConcurrentWorkers.coerceIn(1, 2))
+            // Adaptive concurrency: For 3x-10x or large images, process sequentially (1 worker)
+            // to maximize available memory and prevent OutOfMemory crashes.
+            val isHighScaleOrLarge = settings.scale >= 3 || _jobs.value.any { (it.originalWidth.toLong() * it.originalHeight) >= 4_000_000L }
+            val maxWorkers = if (isHighScaleOrLarge) 1 else settings.maxConcurrentWorkers.coerceIn(1, 2)
+            val semaphore = Semaphore(maxWorkers)
 
             while (_isProcessing.value) {
                 if (_isPaused.value) {
@@ -167,23 +171,31 @@ class BatchQueueManager(
                     outputThumbnail = result.thumbnail,
                     processingTimeMs = result.elapsedTimeMs,
                     scaleUsed = settings.scale,
-                    algorithmUsed = settings.algorithm
+                    algorithmUsed = settings.algorithm,
+                    outputFormatUsed = result.formatUsed,
+                    outputQualityUsed = result.qualityUsed,
+                    isOptimized = result.isOptimized
                 )
             }
         } catch (e: CancellationException) {
             updateJobState(jobId) {
                 it.copy(status = JobStatus.CANCELLED, stage = "Cancelled")
             }
-        } catch (e: Exception) {
+        } catch (t: Throwable) {
+            val errorMsg = when (t) {
+                is OutOfMemoryError -> "${settings.scale}× output is too large for this device's available memory."
+                else -> t.message ?: "Processing failed"
+            }
             updateJobState(jobId) {
                 it.copy(
                     status = JobStatus.FAILED,
-                    stage = "Failed: ${e.message ?: "Unknown error"}",
-                    errorMessage = e.message
+                    stage = "Failed: $errorMsg",
+                    errorMessage = errorMsg
                 )
             }
         } finally {
             activeJobHandles.remove(jobId)
+            System.gc()
         }
     }
 

@@ -14,6 +14,7 @@ import com.example.model.MemorySafetyCheck
 import com.example.model.UpscaleAlgorithm
 import com.example.model.UpscaleSettings
 import com.example.queue.BatchQueueManager
+import com.example.util.ExifHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,21 +108,12 @@ class BatchUpscalerViewModel(application: Application) : AndroidViewModel(applic
 
                     val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
 
-                    // Decode bounds only first to avoid memory overhead
-                    val boundsOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    context.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream, null, boundsOptions)
-                    }
+                    // Use ExifHelper to get true visual dimensions accounting for EXIF orientation (e.g. 90/270 degree rotation)
+                    val (origW, origH) = ExifHelper.getTrueDimensions(context, uri, null)
 
-                    val origW = boundsOptions.outWidth.coerceAtLeast(1)
-                    val origH = boundsOptions.outHeight.coerceAtLeast(1)
-
-                    // Decode lightweight thumbnail
+                    // Decode lightweight thumbnail with orientation applied
                     val sampleSize = calculateInSampleSize(origW, origH, 300, 300)
-                    val thumbOptions = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-                    val thumb = context.contentResolver.openInputStream(uri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream, null, thumbOptions)
-                    }
+                    val thumb = ExifHelper.decodeOrientedBitmap(context, uri, null, sampleSize)
 
                     newJobs.add(
                         ImageJob(

@@ -29,12 +29,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -265,29 +267,43 @@ fun BeforeAfterCompareView(
                         translationY = panOffsetY
                     }
             ) {
-                // Background Layer: Original 1x
-                if (originalThumb != null) {
-                    Image(
-                        bitmap = originalThumb.asImageBitmap(),
-                        contentDescription = "Original image",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                }
+                // Unified Precision Comparison Canvas: Both layers share identical aspect-ratio fit rect
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val imgW = (originalThumb?.width ?: upscaledThumb?.width ?: 1).toFloat()
+                    val imgH = (originalThumb?.height ?: upscaledThumb?.height ?: 1).toFloat()
 
-                // Foreground Layer: Upscaled (Clipped to left side of slider)
-                if (upscaledThumb != null) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val clipW = size.width * sliderFraction
-                        val path = Path().apply {
-                            addRect(Rect(0f, 0f, clipW, size.height))
-                        }
-                        clipPath(path) {
+                    if (imgW > 0 && imgH > 0 && size.width > 0 && size.height > 0) {
+                        val fitScale = minOf(size.width / imgW, size.height / imgH)
+                        val dstW = imgW * fitScale
+                        val dstH = imgH * fitScale
+                        val dstX = (size.width - dstW) / 2f
+                        val dstY = (size.height - dstH) / 2f
+
+                        val dstOffset = IntOffset(dstX.roundToInt(), dstY.roundToInt())
+                        val dstSize = androidx.compose.ui.unit.IntSize(dstW.roundToInt(), dstH.roundToInt())
+
+                        // 1. Draw Baseline Original Image (1×)
+                        originalThumb?.let { orig ->
                             drawImage(
-                                image = upscaledThumb.asImageBitmap(),
-                                dstOffset = IntOffset.Zero,
-                                dstSize = androidx.compose.ui.unit.IntSize(size.width.toInt(), size.height.toInt())
+                                image = orig.asImageBitmap(),
+                                dstOffset = dstOffset,
+                                dstSize = dstSize
                             )
+                        }
+
+                        // 2. Draw Upscaled Image clipped to the left side of the slider
+                        upscaledThumb?.let { up ->
+                            val clipW = size.width * sliderFraction
+                            val path = Path().apply {
+                                addRect(Rect(0f, 0f, clipW, size.height))
+                            }
+                            clipPath(path) {
+                                drawImage(
+                                    image = up.asImageBitmap(),
+                                    dstOffset = dstOffset,
+                                    dstSize = dstSize
+                                )
+                            }
                         }
                     }
                 }
@@ -364,50 +380,120 @@ fun BeforeAfterCompareView(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Professional Technical Specs Panel
+        // Large Output File Warning Notice (if applicable)
+        val isLargeOutput = job.outputFileSize > 25 * 1024 * 1024L || (job.outputWidth.toLong() * job.outputHeight > 50_000_000L)
+        if (job.status == JobStatus.COMPLETED && isLargeOutput) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0xFF2E1F00))
+                    .border(1.dp, Color(0xFF855800), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Info,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB74D),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "Large output file (${formatFileSize(job.outputFileSize)}) — this is expected for very high-resolution images.",
+                        color = Color(0xFFFFE082),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            }
+        }
+
+        // Professional Technical Specs & Output Information Panel
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(6.dp))
                 .background(ResoMaxSurface)
                 .border(1.dp, BorderSubtle, RoundedCornerShape(6.dp))
-                .padding(10.dp)
+                .padding(12.dp)
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Header
+                Text(
+                    text = "OUTPUT SPECIFICATIONS",
+                    color = TextMuted,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.sp
+                )
+
+                // Grid of specs
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Original specs
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("Original", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${job.originalWidth} × ${job.originalHeight}", color = TextPrimary, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                        Text(formatFileSize(job.originalFileSize), color = TextSecondary, fontSize = 11.sp)
+                        Text(formatFileSize(job.originalFileSize), color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace)
+                        Text("${job.originalWidth} × ${job.originalHeight}", color = TextSecondary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                     }
 
                     // Divider
-                    Box(modifier = Modifier.width(1.dp).height(36.dp).background(BorderSubtle))
+                    Box(modifier = Modifier.width(1.dp).height(38.dp).background(BorderSubtle))
 
                     // Output specs
-                    Column {
-                        Text("Upscaled (${job.scaleUsed}×)", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                        Text("${job.outputWidth} × ${job.outputHeight}", color = StatusSuccess, fontSize = 12.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.SemiBold)
+                    Column(modifier = Modifier.weight(1.2f).padding(start = 10.dp)) {
+                        Text("Output (${job.scaleUsed}×)", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                         val outSizeStr = if (job.outputFileSize > 0) formatFileSize(job.outputFileSize) else "Pending"
-                        Text(outSizeStr, color = TextSecondary, fontSize = 11.sp)
+                        Text(outSizeStr, color = StatusSuccess, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                        Text("${job.outputWidth} × ${job.outputHeight}", color = TextSecondary, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                     }
 
                     // Divider
-                    Box(modifier = Modifier.width(1.dp).height(36.dp).background(BorderSubtle))
+                    Box(modifier = Modifier.width(1.dp).height(38.dp).background(BorderSubtle))
 
-                    // Algorithm & Time
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("Algorithm", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                        Text(job.algorithmUsed.shortName, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        Text(if (job.processingTimeMs > 0) "${job.processingTimeMs}ms" else "-", color = TextSecondary, fontSize = 11.sp)
+                    // Format & Quality
+                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+                        Text("Format / Quality", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = if (job.outputFormatUsed.equals("PNG", ignoreCase = true)) "PNG" else "${job.outputFormatUsed} (${job.outputQualityUsed}%)",
+                            color = TextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Text(
+                            text = if (job.isOptimized) "Optimized" else job.algorithmUsed.shortName,
+                            color = if (job.isOptimized) ResoMaxAccent else TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = if (job.isOptimized) FontWeight.SemiBold else FontWeight.Normal
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(thickness = 1.dp, color = BorderSubtle)
+
+                // Resolution summary line
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Resolution Transform", color = TextSecondary, fontSize = 11.sp)
+                    Text(
+                        "${job.originalWidth} × ${job.originalHeight}  →  ${job.outputWidth} × ${job.outputHeight}",
+                        color = TextPrimary,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
 
                 // Mobile Action Buttons
                 Row(

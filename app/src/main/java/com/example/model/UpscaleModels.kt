@@ -18,8 +18,9 @@ enum class FilterLevel(val displayName: String, val strength: Float) {
 }
 
 enum class OutputFormat(val extension: String, val mimeType: String, val displayName: String) {
-    PNG(".png", "image/png", "PNG (Lossless)"),
+    AUTO("", "", "Auto (Match Input)"),
     JPEG(".jpg", "image/jpeg", "JPEG"),
+    PNG(".png", "image/png", "PNG (Lossless)"),
     WEBP(".webp", "image/webp", "WebP");
 
     val isLossless: Boolean get() = this == PNG
@@ -31,9 +32,10 @@ data class UpscaleSettings(
     val sharpening: FilterLevel = FilterLevel.MEDIUM,
     val noiseReduction: FilterLevel = FilterLevel.OFF,
     val detailEnhancement: FilterLevel = FilterLevel.LOW,
-    val outputFormat: OutputFormat = OutputFormat.PNG,
-    val jpegQuality: Int = 100, // 70 to 100
-    val webpQuality: Int = 95,
+    val outputFormat: OutputFormat = OutputFormat.AUTO,
+    val jpegQuality: Int = 95, // 70 to 100, default 95
+    val webpQuality: Int = 95, // 70 to 100, default 95
+    val optimizeFileSize: Boolean = false, // "Optimize File Size" toggle
     val preserveTransparency: Boolean = true,
     val maxConcurrentWorkers: Int = 2
 )
@@ -66,6 +68,9 @@ data class ImageJob(
     val processingTimeMs: Long = 0L,
     val scaleUsed: Int = 4,
     val algorithmUsed: UpscaleAlgorithm = UpscaleAlgorithm.LANCZOS,
+    val outputFormatUsed: String = "JPG",
+    val outputQualityUsed: Int = 95,
+    val isOptimized: Boolean = false,
     val errorMessage: String? = null
 )
 

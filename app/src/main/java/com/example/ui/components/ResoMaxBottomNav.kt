@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.FilterNone
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,21 +52,25 @@ fun ResoMaxBottomNav(
     completedCount: Int,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(ResoMaxSurface)
-            .border(width = 1.dp, color = BorderSubtle)
-            .navigationBarsPadding()
     ) {
-        Row(
+        HorizontalDivider(thickness = 1.dp, color = BorderSubtle)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
+                .navigationBarsPadding()
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             NavItem(
                 label = "Queue",
                 icon = Icons.Default.FilterNone,
@@ -94,14 +99,15 @@ fun ResoMaxBottomNav(
                 testTag = "nav_tab_completed"
             )
 
-            NavItem(
-                label = "Settings",
-                icon = Icons.Default.Tune,
-                badgeCount = 0,
-                isSelected = activeTab == AppTab.SETTINGS,
-                onClick = { onTabSelected(AppTab.SETTINGS) },
-                testTag = "nav_tab_settings"
-            )
+                NavItem(
+                    label = "Settings",
+                    icon = Icons.Default.Tune,
+                    badgeCount = 0,
+                    isSelected = activeTab == AppTab.SETTINGS,
+                    onClick = { onTabSelected(AppTab.SETTINGS) },
+                    testTag = "nav_tab_settings"
+                )
+            }
         }
     }
 }

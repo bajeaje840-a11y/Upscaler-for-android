@@ -253,8 +253,10 @@ private fun CompletedAssetRow(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
+                val fmtStr = if (job.outputFormatUsed.equals("PNG", ignoreCase = true)) "PNG" else "${job.outputFormatUsed} ${job.outputQualityUsed}%"
+                val optStr = if (job.isOptimized) " • Optimized" else ""
                 Text(
-                    text = "${formatFileSize(job.outputFileSize)} • ${job.processingTimeMs}ms • ${job.algorithmUsed.shortName}",
+                    text = "${formatFileSize(job.outputFileSize)} • $fmtStr$optStr • ${job.processingTimeMs}ms",
                     color = TextSecondary,
                     fontSize = 10.sp,
                     fontFamily = FontFamily.Monospace
