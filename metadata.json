@@ -1,0 +1,8 @@
+{
+  "name": "ResoMax",
+  "description": "Local batch image upscaler supporting 2x to 10x enlargement with Lanczos, Bicubic, Bilinear resampling, sharpening, noise reduction, interactive before/after preview, and ZIP export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
